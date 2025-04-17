@@ -1,10 +1,13 @@
 // utilities for working with polars dataframes
 //
+use polars::io::SerReader;
 use polars::prelude::*;
+use std::fs::File;
 
 //read in a csv file
 pub fn read_csv(path: &str) -> DataFrame {
-    CsvReader::from_path(path).unwrap().finish().unwrap()
+    let file = File::open(path).unwrap();
+    CsvReader::new(file).finish().unwrap()
 }
 
 //print "n" rows of a dataframe

@@ -4,7 +4,6 @@ use polars::prelude::*;
 const CSV_FILE: &str = "src/data/global-life-expt-2022.csv";
 
 #[derive(Parser)]
-//add extended help
 #[clap(
     version = "1.0",
     author = "Noah Gift",
@@ -43,7 +42,7 @@ enum Commands {
         year: String,
         #[clap(long, default_value = "10")]
         rows: usize,
-        #[clap(long, default_value = "true")]
+        #[clap(long, action = clap::ArgAction::SetTrue)]
         order: bool,
     },
 }
@@ -73,16 +72,23 @@ fn main() {
             rows,
             order,
         }) => {
-            let df = polarsdf::read_csv(&path);
+            let df: DataFrame = polarsdf::read_csv(&path);
             let country_column_name = "Country Name";
             //select the country column and the year string passed in and return a new dataframe
-            let vs = df.select_series([country_column_name, &year]).unwrap();
-            //convert the Vec<Series> to a DataFrame
-            let df2 = DataFrame::new(vs).unwrap();
+            let mut df2: DataFrame = df.select([country_column_name, &year]).unwrap();
             //drop any rows with null values and return a new dataframe
-            let df2: DataFrame = df2.drop_nulls(None).unwrap();
-            //sort the dataframe by the year column and by order passed in
-            let df2 = df2.sort([&year], order).unwrap();
+            df2 = df2.drop_nulls::<String>(None).unwrap();
+
+            // ✅ Setup sort options: true = descending, false = ascending
+            let sort_options = SortMultipleOptions {
+                descending: vec![!order], // Flip the logic: order=true means ascending
+                ..Default::default()
+            };
+
+            // ✅ Sort by the year column using correct API
+            let columns: Vec<String> = vec![year.clone()];
+            println!("{:?}", columns);
+            df2 = df2.sort(&columns, sort_options).unwrap();
 
             //print the first "rows" of the dataframe
             println!("{:?}", df2.head(Some(rows)));
